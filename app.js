@@ -112,3 +112,46 @@ form.addEventListener("submit", async (e) => {
 });
 
 console.log("%cYou are reading the source. Something is reading you.", "color:#c8b400;font:16px 'Special Elite',monospace");
+
+// ---------- night of pressure ----------
+// Friday, November 13, 2026, from 6:42 PM until 4:00 AM, in the visitor's own time zone.
+const EVENT_START = new Date(2026, 10, 13, 18, 42, 0);
+const EVENT_END = new Date(2026, 10, 14, 4, 0, 0);
+const BARO_BOTTOM = new Date(2026, 10, 13, 23, 59, 0);
+
+function pressureNight(now = new Date()) {
+  return now >= EVENT_START && now < EVENT_END;
+}
+
+function baroAt(now) {
+  const k = Math.min(1, Math.max(0, (now - EVENT_START) / (BARO_BOTTOM - EVENT_START)));
+  return 29.92 - (29.92 - 27.14) * Math.pow(k, 1.6);
+}
+
+async function startPressureNight() {
+  document.body.classList.add("pressure");
+  const bar = el("div", "advisory");
+  bar.setAttribute("role", "alert");
+  const msg = el("span", null, "Surface pressure advisory in effect for your area. Protocol 4 suspended.");
+  const baro = el("span", "baro");
+  bar.append(msg, baro);
+  document.body.prepend(bar);
+  const tick = () => { baro.textContent = baroAt(new Date()).toFixed(2) + " inHg"; };
+  tick(); setInterval(tick, 1000);
+
+  let rec = null;
+  try { rec = await open("PRESSURE-" + EVENT_START.getFullYear() + "1113"); } catch { rec = null; }
+  if (!rec) return;
+  setTimeout(() => {
+    const card = render(rec);
+    card.classList.add("transmission");
+    slot.replaceChildren(card);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      card.classList.add("developing");
+      card.classList.remove("negative");
+    }));
+  }, 2500);
+  console.log("%cThe pressure is falling. Do not look up.", "color:#ff4a3d;font:18px 'Special Elite',monospace");
+}
+
+if (pressureNight()) startPressureNight();
